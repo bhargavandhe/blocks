@@ -18,7 +18,7 @@ const sidebarConfig = [
     icon: getIcon(pieChart2Fill),
   },
   {
-    title: "my aadhar",
+    title: "my aadhaar",
     path: "/dashboard/details",
     icon: getIcon(fileTextFill),
   },
@@ -43,9 +43,9 @@ const sidebarConfig = [
     icon: getIcon(personAddFill),
   },
   {
-    title: "Not found",
-    path: "/404",
-    icon: getIcon(alertTriangleFill),
+    title: "logs",
+    path: "/dashboard/logs",
+    icon: getIcon(fileTextFill),
   },
 ];
 

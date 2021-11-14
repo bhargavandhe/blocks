@@ -15,7 +15,6 @@ import {
 import Page from "../components/Page";
 //
 import { Box } from "@mui/system";
-import { getUserData } from "src/helpers/database";
 import { userData } from "src/helpers/userData";
 import { useEffect, useState } from "react";
 

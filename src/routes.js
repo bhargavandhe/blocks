@@ -10,6 +10,7 @@ import Requests from "./pages/Requests";
 import Update from "./pages/Update";
 import Details from "./pages/Details";
 import NotFound from "./pages/Page404";
+import Logs from "./pages/Logs";
 
 // ----------------------------------------------------------------------
 
@@ -35,6 +36,7 @@ export default function Router() {
         { path: "details", element: <Details /> },
         { path: "requests", element: <Requests /> },
         { path: "update", element: <Update /> },
+        { path: "logs", element: <Logs /> },
       ],
     },
     { path: "*", element: <Navigate to="/404" replace /> },

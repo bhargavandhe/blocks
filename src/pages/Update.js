@@ -1,12 +1,8 @@
-import { Icon } from "@iconify/react";
-import plusFill from "@iconify/icons-eva/plus-fill";
-import { Link as RouterLink } from "react-router-dom";
 // material
 import {
   Grid,
   Button,
   Container,
-  Stack,
   Typography,
   TextField,
   Card,
@@ -14,14 +10,12 @@ import {
 // components
 import Page from "../components/Page";
 //
-import POSTS from "../_mocks_/blog";
 import { Box } from "@mui/system";
 import { useState, useEffect } from "react";
 import {
   getBlockData,
   getDataFromFirebase,
   getResponses,
-  getUserData,
   pushRequest,
   updateKYC,
 } from "src/helpers/database";
@@ -91,7 +85,7 @@ export default function Update() {
   async function update() {
     const res = await getDataFromFirebase(user.uid);
     const privateKey = res.privateKey;
-    updateKYC(newUserData, privateKey);
+    updateKYC(newUserData, privateKey, requestResponses.uid);
   }
 
   return (

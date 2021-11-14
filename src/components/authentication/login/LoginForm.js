@@ -31,10 +31,12 @@ export default function LoginForm() {
       remember: false,
     },
     onSubmit: async () => {
-      const res = await login(formik.values.uid, formik.values.password);
-      console.log(res);
-      if (res) {
-        navigate("/dashboard", { replace: true });
+      if (formik.values.uid && formik.values.password) {
+        const res = await login(formik.values.uid, formik.values.password);
+        console.log(res);
+        if (res) {
+          navigate("/dashboard", { replace: true });
+        }
       }
     },
   });

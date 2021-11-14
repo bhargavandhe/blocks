@@ -2,6 +2,9 @@ import ipfs from "../ipfs";
 import { db } from "../fire";
 import { decrypt, encrypt } from "./cipher";
 import { generate, verify } from "password-hash";
+import { log, LOG_TYPES } from "./logger";
+import axios from "axios";
+import { firestore } from "firebase";
 
 export async function register(uid, password, ekyc) {
   // create doc -> uid
@@ -11,8 +14,7 @@ export async function register(uid, password, ekyc) {
   // get hash from ipfs
   // add to firebase
 
-  const privateKey = generate(uid + password);
-
+  const privateKey = generate(uid + password, { algorithm: "sha256" });
   const buffer = Buffer.from(await encrypt(ekyc, privateKey));
   ipfs.files.add(buffer).then(async (res) => {
     console.log(res[0].hash);
@@ -22,17 +24,24 @@ export async function register(uid, password, ekyc) {
       privateKey: privateKey,
       incomingRequests: {},
       requestResponses: {},
+      logs: [],
     });
+    log(uid, LOG_TYPES.activity, "Account registered successfully");
+    localStorage.setItem("uid", uid);
     return true;
   });
   return false;
 }
 
 export async function login(uid, password) {
+  const res = await axios.get("https://api.ipify.org?format=json");
+  const ip = res.data.ip;
+
   const data = await getDataFromFirebase(uid);
   if (data) {
     if (verify(uid + password, data.privateKey)) {
       localStorage.setItem("uid", uid);
+      log(uid, LOG_TYPES.activity, `New login detected from Public IP = ${ip}`);
       return true;
     }
     return false;
@@ -40,15 +49,21 @@ export async function login(uid, password) {
   return false;
 }
 
-export async function updateKYC(ekyc, privateKey) {
-  console.log(ekyc);
-
+export async function updateKYC(ekyc, privateKey, referenceUID) {
   const buffer = Buffer.from(await encrypt(ekyc, privateKey));
   ipfs.files.add(buffer).then(async (res) => {
     console.log(res[0].hash);
-    await db.collection("users").doc(ekyc.uid).update({
-      blockHash: res[0].hash,
-    });
+    await db
+      .collection("users")
+      .doc(ekyc.uid)
+      .update({
+        blockHash: res[0].hash,
+        logs: firestore.FieldValue.arrayUnion({
+          type: LOG_TYPES.notification,
+          time: firestore.Timestamp.now(),
+          message: `Successfully updated Aadhar, refUID = ${referenceUID}`,
+        }),
+      });
   });
 }
 
@@ -62,19 +77,23 @@ export async function getBlockData(blockHash, privateKey) {
 
 export async function getDataFromFirebase(uid) {
   console.log(uid);
-  const res = await db.collection("users").doc(uid).get();
-  return res.data();
+  if (uid) {
+    const res = await db.collection("users").doc(uid).get();
+    return res.data();
+  }
 }
 
 export async function getUserData(uid) {
   const firebaseData = await getDataFromFirebase(uid);
 
-  const blockHash = firebaseData.blockHash;
-  const privateKey = firebaseData.privateKey;
+  if (firebaseData) {
+    const blockHash = firebaseData.blockHash;
+    const privateKey = firebaseData.privateKey;
 
-  const ekyc = getBlockData(blockHash, privateKey);
+    const ekyc = getBlockData(blockHash, privateKey);
 
-  return ekyc;
+    return ekyc;
+  }
 }
 
 export async function getResponses(uid) {
@@ -88,6 +107,11 @@ export async function pushRequest(ownerUID, requesterUID) {
     .collection("users")
     .doc(ownerUID)
     .set({ incomingRequests: { [requesterUID]: false } }, { merge: true });
+  log(
+    ownerUID,
+    LOG_TYPES.notification,
+    `${requesterUID} has requested your Aadhar Address`
+  );
 }
 
 export async function popRequest(uid) {
@@ -110,4 +134,27 @@ export async function sendKYC(ownerUID, requesterUID) {
       },
       { merge: true }
     );
+
+  log(
+    ownerUID,
+    LOG_TYPES.shared,
+    `${requesterUID} has now access to your Aadhar address`
+  );
+
+  log(
+    requesterUID,
+    LOG_TYPES.shared,
+    `You now have access to ${ownerUID}'s Aadhar address`
+  );
+
+  log(
+    requesterUID,
+    LOG_TYPES.notification,
+    `You now have access to ${requesterUID}'s Aadhar address`
+  );
+}
+
+export async function getLogs(uid) {
+  const res = await db.collection("users").doc(uid).get();
+  return res.data().logs;
 }
